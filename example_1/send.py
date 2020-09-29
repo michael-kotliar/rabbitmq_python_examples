@@ -1,4 +1,5 @@
 import pika
+import json
 
 # First thing to do is establish a connection with RabbitMQ server
 # and create a new channel
@@ -12,7 +13,7 @@ credentials = pika.PlainCredentials("user", "password")
 parameters = pika.ConnectionParameters(
     host="localhost",
     port=5672,
-    virtual_host="/",
+    virtual_host="/",          # provides a way to segregate applications using the same RabbitMQ instance
     credentials=credentials)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
@@ -20,14 +21,19 @@ channel = connection.channel()
 # create a queue
 channel.queue_declare(queue="hello")
 
-# NOTE: In RabbitMQ a message can never be sent directly to the queue, it always needs to go through an exchange
+message = {
+    "job": {},
+    "cwl": {}
+}
 
+# In RabbitMQ a message can never be sent directly to the queue, it always needs to go through an exchange
 channel.basic_publish(
-    exchange="",           # default exchange, always Direct type
-    routing_key="hello",   # queue name
-    body="Hello World!"
+    exchange="",               # default exchange, always Direct type
+    routing_key="hello",       # in this case it's a queue name, but can be pattern if Exchange type is topic
+    body=json.dumps(message)   # should be serialized to string
 )
-print(" [x] Sent 'Hello World!'")
 
-# Make sure the network buffers were flushed and our message was actually delivered to RabbitMQ
+print(f"Message sent \n{message}")
+
+# Make sure the network buffers are flushed and our message is actually delivered to RabbitMQ
 connection.close()
